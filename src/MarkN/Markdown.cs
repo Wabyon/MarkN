@@ -1,5 +1,6 @@
 ﻿using System;
 using JavaScriptEngineSwitcher.Core;
+using MarkN.Internals;
 
 namespace MarkN
 {
