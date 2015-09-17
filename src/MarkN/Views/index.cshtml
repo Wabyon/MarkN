@@ -1,0 +1,39 @@
+﻿@using MarkN.Razor
+@{
+    Layout = "Views/Shared/_layout.cshtml";
+}
+<div class="markdown">
+    @Html.Markdown(@"
+# API
+
+```
+POST /markdown
+```
+
+#### Parameters
+
+|Name|Type|Description|
+|:---|:--:|:----------|
+|text|string|**Required**|
+|sanitize|bool|Default: true|
+
+#### Example
+
+``` json
+{
+  ""text"": ""#Hello world\n [LinkText](http://linkpage)"",
+  ""sanitize"": true
+}
+```
+
+#### Responce
+
+``` html
+Status: 200 OK
+Content-Type: text/html
+
+<h1>Hello world</h1>
+<p><a href=""http://linkpage"">LinkText</a></p>
+```
+", false)
+</div>
