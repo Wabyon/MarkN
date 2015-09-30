@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Linq;
-using MarkN.Modules;
 using Microsoft.Win32;
-using Nancy.Hosting.Self;
 using Topshelf;
+using Topshelf.Nancy;
 
 namespace MarkN.SelfHost
 {
@@ -13,47 +12,49 @@ namespace MarkN.SelfHost
         private static readonly string _displayName = "MarkN";
         private static readonly string _description = "Markdown Transform Application.";
 
-        static void Main(string[] args)
+        static void Main()
         {
-            if (!CheckEnvironment()) return;
+            if (!Settings.ExistsFile && !CheckInstalledVsCpp()) return;
 
-            Console.WriteLine("PortNo: {0}", Settings.Instance.PortNo);
-
-            var uri = string.Format("http://localhost:{0}/", Settings.Instance.PortNo);
-
-            HostFactory.Run(x =>
+            var host = HostFactory.New(configurator =>
             {
-                x.EnableServiceRecovery(recover =>
+                string portParameter = null;
+
+                configurator.AddCommandLineDefinition("port", p => { portParameter = p; });
+                configurator.ApplyCommandLine();
+
+                int o;
+                Settings.Instance.Port = int.TryParse(portParameter, out o) ? o : Settings.Instance.Port;
+
+                configurator.EnableServiceRecovery(recover =>
                 {
                     recover.RestartService(0);
                 });
 
-                x.Service<NancyHost>(s =>
+                configurator.Service<Service>(s =>
                 {
-                    s.ConstructUsing(name => new NancyHost(new Uri(uri)));
+                    s.ConstructUsing(name => new Service());
                     s.WhenStarted(sc => sc.Start());
                     s.WhenStopped(sc => sc.Stop());
+
+                    s.WithNancyEndpoint(configurator, nancyConfigurator =>
+                    {
+                        nancyConfigurator.AddHost(port: Settings.Instance.Port);
+                    });
                 });
 
-                x.StartAutomaticallyDelayed();
+                configurator.StartAutomaticallyDelayed();
 
-                x.RunAsLocalSystem();
+                configurator.RunAsLocalSystem();
 
-                x.SetServiceName(_serviceName);
-                x.SetDisplayName(_displayName);
-                x.SetDescription(_description);
+                configurator.SetServiceName(_serviceName);
+                configurator.SetDisplayName(_displayName);
+                configurator.SetDescription(_description);
             });
-        }
 
-        static bool CheckEnvironment()
-        {
-            if (Settings.ExistsFile) return true;
+            Console.WriteLine("Running Port: {0}", Settings.Instance.Port);
 
-            if (!CheckInstalledVsCpp()) return false;
-
-            SetParams();
-
-            return true;
+            host.Run();
         }
 
         static bool CheckInstalledVsCpp()
@@ -83,35 +84,6 @@ namespace MarkN.SelfHost
             Console.WriteLine("http://www.microsoft.com/en-us/download/details.aspx?id=40784");
             Console.ReadKey();
             return false;
-        }
-
-        static void SetParams()
-        {
-            Console.WriteLine("set portno like 8080");
-            while (true)
-            {
-                var portNoString = Console.ReadLine();
-                if (string.IsNullOrWhiteSpace(portNoString))
-                {
-                    continue;
-                }
-
-                int portno;
-                if (!int.TryParse(portNoString, out portno))
-                {
-                    Console.WriteLine("set number.");
-                    continue;
-                }
-
-                if (portno < 0 || portno > 65535)
-                {
-                    Console.WriteLine("choose 0 - 65535");
-                    continue;
-                }
-
-                Settings.Instance.PortNo = portno;
-                break;
-            }
         }
     }
 }
