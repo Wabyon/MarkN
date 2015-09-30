@@ -20,16 +20,16 @@ namespace MarkN.SelfHost
             get { return _instance ?? (_instance = ReadJson()); }
         }
 
-        private int _portNo;
+        private int _port = 8080;
 
-        public int PortNo
+        public int Port
         {
-            get { return _portNo; }
+            get { return _port; }
             set
             {
-                if (_portNo == value) return;
+                if (_port == value) return;
 
-                _portNo = value;
+                _port = value;
                 WriteJson();
             }
         }
